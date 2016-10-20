@@ -1,0 +1,39 @@
+Name:                cgen
+Version:             0.1
+Category:            Code Generation
+License:             BSD3
+Build-type:          Simple
+Maintainer:          dybber@dybber.dk
+Cabal-version:       >= 1.10
+
+Library
+  Build-depends: base >= 3 && < 5
+               , containers >= 0.5
+               , pretty >= 1.1
+               , transformers >= 0.4 && < 0.5
+
+  HS-source-dirs: src
+
+  exposed-modules: CGen
+                   CGen.Monad
+                   CGen.Syntax
+                   CGen.Cons
+                   CGen.ConsGPU
+                   CGen.SimpleAllocator
+                   CGen.Pretty
+                   CGen.Analysis
+                   CGen.Analysis.Graph
+                   CGen.Analysis.Dataflow
+                   CGen.Analysis.Liveness
+                   CGen.Analysis.ReachingDefs
+                   CGen.Analysis.TypeChecker
+                   CGen.Optimise
+                   CGen.Optimise.ConstantFold
+                   CGen.Optimise.ConstantPropagation
+                   CGen.Optimise.CopyPropagation
+                   CGen.Optimise.DeadCodeElimination
+                   CGen.Optimise.LoopUnroll
+
+  Default-Language: Haskell2010
+  GHC-Options: -Wall
+  GHC-prof-options: -fprof-auto
