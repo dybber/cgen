@@ -87,4 +87,3 @@ generateFunction us optIterations name m =
 addSharedMem :: Maybe Bytes -> [VarName]
 addSharedMem Nothing = []
 addSharedMem _ = [("sbase", CPtr [attrLocal] CWord8)]
-

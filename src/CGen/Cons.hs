@@ -2,7 +2,7 @@
 module CGen.Cons (
   
  -- Types
- int, double, bool, word8, word32, word64, pointer,
+ int32_t, double_t, bool_t, uint8_t, uint32_t, uint64_t, pointer_t,
  attrVolatile,
 
  -- Expressions
@@ -102,11 +102,11 @@ callVoid funname args =
 -- taking the index variable as parameter
 for :: CExp -> (CExp -> CGen u ()) -> CGen u ()
 for ub f = do
-  i <- newVar int "i"
-  let_ "ub" int ub >>= (\upperbound -> do
+  i <- newVar int32_t "i"
+  let_ "ub" int32_t ub >>= (\upperbound -> do
     body <- run (f (VarE i))
                                -- TODO: Var count should be passed on!
-    addStmt $ For i upperbound body ())
+    addStmt (For i upperbound body ()))
 
 whileLoop :: CExp -> CGen u () -> CGen u ()
 whileLoop f body = whileUnroll 0 f body
@@ -124,44 +124,44 @@ iff cond (f1, f2) = do
 
 allocate :: CType -> [Attribute] -> CExp -> CGen u VarName
 allocate ty attr n = do
-  arr <- newVar (pointer attr ty) "arr"
-  addStmt $ Allocate arr n ()
+  arr <- newVar (pointer_t attr ty) "arr"
+  addStmt (Allocate arr n ())
   return arr
 
 -- assign variable, and add to current list of operators
 assign :: VarName -> CExp -> CGen u ()
-assign n e = addStmt (Assign n e ())
+assign name e = addStmt (Assign name e ())
 
 (<==) :: VarName -> CExp -> CGen u ()
-n <== e = assign n e
+name <== e = assign name e
 
 -- assign to an array
 assignArray :: VarName -> CExp -> CExp -> CGen u ()
-assignArray n e idx = addStmt (AssignSub n idx e ())
+assignArray arrName e idx = addStmt (AssignSub arrName idx e ())
 
 -----------------
 --    Types    --
 -----------------
-int :: CType
-int = CInt32
+int32_t :: CType
+int32_t = CInt32
 
-double :: CType
-double = CDouble
+double_t :: CType
+double_t = CDouble
 
-bool :: CType
-bool = CBool
+bool_t :: CType
+bool_t = CBool
 
-word8 :: CType
-word8 = CWord8
+uint8_t :: CType
+uint8_t = CWord8
 
-word32 :: CType
-word32 = CWord32
+uint32_t :: CType
+uint32_t = CWord32
 
-word64 :: CType
-word64 = CWord64
+uint64_t :: CType
+uint64_t = CWord64
 
-pointer :: [Attribute] -> CType -> CType
-pointer attr t = CPtr attr t
+pointer_t :: [Attribute] -> CType -> CType
+pointer_t attr t = CPtr attr t
 
 attrVolatile :: Attribute
 attrVolatile = Volatile
@@ -202,7 +202,7 @@ if_ econd etrue efalse =
 econd ? (e0,e1) = if_ econd e0 e1
 
 index :: VarName -> CExp -> CExp
-index n e =  IndexE n e
+index arrName e =  IndexE arrName e
 
 (!) :: VarName -> CExp -> CExp
 (!) = index

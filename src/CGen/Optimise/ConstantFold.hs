@@ -111,6 +111,7 @@ foldBinOp NeqI (IntE v0) (IntE v1) | v0 /= v1  = BoolE True
 foldBinOp LtI (IntE v0) (IntE v1) | v0 < v1  = BoolE True
                                   | otherwise = BoolE False
 foldBinOp LtI LocalID (IntE 0) = BoolE False
+foldBinOp GtI (IntE v0) (IntE v1) = BoolE (v0 > v1)
 foldBinOp GtI (IntE 0) LocalID = BoolE False
 
 foldBinOp Sll (IntE v0) (IntE v1) = IntE (shiftL v0 v1)

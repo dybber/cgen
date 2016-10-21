@@ -1,5 +1,5 @@
 module CGen.Optimise.LoopUnroll
-(unroll)
+  (unroll)
 where
 
 import CGen.Syntax
@@ -11,17 +11,15 @@ unroll stmts = concat (map process stmts)
    process :: Statement Label -> [Statement Label]
    process (For v e body i)          = [For v e (unroll body) i]
    process (If e strue sfalse i) = [If e (unroll strue)
-                                          (unroll sfalse) i]
-   process (While 0 e body i)   = [While 0 e (unroll body) i]
-   process (While n e body i)    = whileUnroll n e body i
+                                         (unroll sfalse) i]
+   process (While n e body i)    = whileUnroll n e (unroll body) i
 
    process stmt = [stmt]
 
 
 whileUnroll :: Int -> CExp -> [Statement Label] -> Label -> [Statement Label]
-whileUnroll n e body lbl =
-  let body' = unroll body
-  in [If e (body' ++ [While (n-1) e body' lbl]) [] lbl]
+whileUnroll 0 e body i = [While 0 e body i]
+whileUnroll n e body i = (If e body [] i) : whileUnroll (n-1) e body i
 
 
 -- maybeUnrollWhile :: Map.Map Label (Set.Set Label) -> (VarName -> Set.Set (Label, Maybe CExp)) -> CExp -> [Statement Label] -> Label -> [Statement Label]
