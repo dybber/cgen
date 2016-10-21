@@ -79,8 +79,8 @@ checkStmt env (Decl var@(x,ty) e0 _) =
   do ty0 <- checkExp env e0
      when (ty0 /= ty) $ throw $ "Right hand side in declaration of " ++ x ++ " , does not match declared type."
      addVar env var
-checkStmt env (SyncLocalMem _) = return env
-checkStmt env (SyncGlobalMem _) = return env
+checkStmt env (Exec e _) = do _ <- checkExp env e
+                              return env
 checkStmt env (Comment _ _) = return env
 checkStmt env (Allocate var e0 _) =
   do ty0 <- checkExp env e0
@@ -105,12 +105,6 @@ checkExp _ (BoolE _)   = return CBool
 checkExp _ (Word8E _)  = return CWord8
 checkExp _ (Word32E _) = return CWord32
 checkExp _ (Word64E _) = return CWord64
-checkExp _ GlobalID    = return clDeviceAddressBits
-checkExp _ LocalID     = return clDeviceAddressBits
-checkExp _ GroupID     = return clDeviceAddressBits
-checkExp _ LocalSize   = return clDeviceAddressBits
-checkExp _ NumGroups   = return clDeviceAddressBits
-checkExp _ WarpSize    = return clDeviceAddressBits
 checkExp env (VarE var) = checkVar env var
 checkExp env (UnaryOpE op e0) = do
   ty0 <- checkExp env e0
@@ -135,12 +129,6 @@ checkExp env (IndexE var e0) = do
     _         -> throw "Trying to index into non-array"
 checkExp env (CastE ty e0) = do _ <- checkExp env e0
                                 return ty
-
--- CL_DEVICE_ADDRESS_BITS
--- TODO in reality this is platform dependent and likely unsigned 64
--- bits on most platforms.
-clDeviceAddressBits :: CType
-clDeviceAddressBits = CInt32
 
 checkBinOp :: BinOp -> CType -> CType -> Err CType
 checkBinOp AddI CInt32 CInt32 = return CInt32

@@ -27,12 +27,6 @@ foldExp e =
     Word32E _  -> e
     Word64E _  -> e
     StringE _  -> e
-    GlobalID   -> e
-    LocalID    -> e
-    GroupID    -> e
-    LocalSize  -> e
-    NumGroups  -> e
-    WarpSize   -> e
     Const _ _  -> e
     VarE _  -> e
     CastE ty0 (CastE _ e0)  -> foldExp (CastE ty0 (foldExp e0))
@@ -41,7 +35,7 @@ foldExp e =
     IfE e0 e1 e2 -> foldIf (foldExp e0) (foldExp e1) (foldExp e2)
     BinOpE op e0 e1 -> foldBinOp op (foldExp e0) (foldExp e1)
     UnaryOpE op e0 -> foldUnOp op (foldExp e0)
-    FunCall fname es -> FunCall fname (map foldExp es)
+    FunCall ty fname es -> FunCall ty fname (map foldExp es)
     SizeOf ty ->
       case sizeOf ty of
         Just i -> IntE i
@@ -110,9 +104,7 @@ foldBinOp NeqI (IntE v0) (IntE v1) | v0 /= v1  = BoolE True
                                    | otherwise = BoolE False
 foldBinOp LtI (IntE v0) (IntE v1) | v0 < v1  = BoolE True
                                   | otherwise = BoolE False
-foldBinOp LtI LocalID (IntE 0) = BoolE False
 foldBinOp GtI (IntE v0) (IntE v1) = BoolE (v0 > v1)
-foldBinOp GtI (IntE 0) LocalID = BoolE False
 
 foldBinOp Sll (IntE v0) (IntE v1) = IntE (shiftL v0 v1)
 foldBinOp Srl (IntE v0) (IntE v1) = IntE (shiftR v0 v1)
@@ -138,8 +130,7 @@ constantFold stmts = concat (map process stmts)
                        (constantFold sfalse) i]
    process (While unroll e body i) = [While unroll (foldExp e) (constantFold body) i]
    process (Decl v e i)           = [Decl v (foldExp e) i]
-   process (SyncLocalMem i)       = [SyncLocalMem i]
-   process (SyncGlobalMem i)      = [SyncGlobalMem i]
+   process (Exec e i)             = [Exec (foldExp e) i]
    process (Allocate v e i)       = [Allocate v (foldExp e) i]
    process (Assign v e i)        = [Assign v (foldExp e) i]
    process (AssignSub v e0 e1 i) = [AssignSub v (foldExp e0) (foldExp e1) i]

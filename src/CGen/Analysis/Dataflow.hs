@@ -41,8 +41,7 @@ addLabels stmts = evalState (addMany stmts) (Label 1)
     addLabel (Assign v e _)          = Assign v e        <$> next
     addLabel (AssignSub v e0 e1 _)   = AssignSub v e0 e1 <$> next
     addLabel (Decl v e _)            = Decl v e          <$> next
-    addLabel (SyncLocalMem _)        = SyncLocalMem      <$> next
-    addLabel (SyncGlobalMem _)       = SyncGlobalMem     <$> next
+    addLabel (Exec e _)              = Exec e            <$> next
     addLabel (Comment msg _)         = Comment msg       <$> next
     addLabel (Allocate v e _)        = Allocate v e      <$> next
 

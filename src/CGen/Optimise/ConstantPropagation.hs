@@ -37,12 +37,6 @@ constantProp stmts inSet defs =
       case traceVar v lbl of
         Nothing -> e
         Just e' | isScalar e' -> e'
-        Just NumGroups -> NumGroups
-        Just LocalSize -> LocalSize
-        Just WarpSize -> WarpSize
-        Just GlobalID -> GlobalID
-        Just GroupID -> GroupID
-        Just LocalID -> LocalID
         _ -> e
     rep lbl (UnaryOpE op e0)  = UnaryOpE op (rep lbl e0)
     rep lbl (BinOpE op e0 e1) = BinOpE op (rep lbl e0) (rep lbl e1)
@@ -53,6 +47,7 @@ constantProp stmts inSet defs =
     
     prop (Assign v e lbl)          = Assign v (rep lbl e) lbl
     prop (Decl v e lbl)            = Decl v (rep lbl e) lbl
+    prop (Exec e lbl)              = Exec (rep lbl e) lbl
     prop (AssignSub v e0 e1 lbl)   = AssignSub v (rep lbl e0) (rep lbl e1) lbl
     prop (Allocate v e lbl)        = Allocate v (rep lbl e) lbl
     prop (For v e ss lbl)          = For v (rep lbl e) (map prop ss) lbl

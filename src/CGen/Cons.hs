@@ -8,7 +8,7 @@ module CGen.Cons (
  -- Expressions
  constant, if_, (?), let_, letVar, index, (!), cast,
  -- Getter's (launch parameters and current thread info)
- var, call, callVoid, string, void, definedConst,
+ var, call, string, definedConst,
 
  -- Unary operators
  not, i2d, negatei, negated,
@@ -75,21 +75,8 @@ comment msg = addStmt (Comment msg ())
 --------------------
 -- Function calls --
 --------------------
-
-void :: CType
-void = CCustom "void" Nothing
-
-call :: Name -> CType -> Name -> [CExp] -> CGen u VarName
-call name ty funname args =
-  do v <- newVar ty name
-     addStmt (Decl v (FunCall funname args) ())
-     return v
-
-callVoid :: Name -> [CExp] -> CGen u ()
-callVoid funname args =
-  do v <- newVar void "unused"
-     addStmt (Decl v (FunCall funname args) ())
-     return ()
+call :: CType -> Name -> [CExp] -> CGen u ()
+call ty funname args = addStmt (Exec (FunCall ty funname args) ())
 
 ----------------
 -- Statements --

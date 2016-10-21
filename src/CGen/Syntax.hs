@@ -19,6 +19,7 @@ data CType =
   | CWord8
   | CWord32
   | CWord64
+  | CVoid
   | CPtr [Attribute] CType -- ^ Only put attributes on the outermost CPtr, if nested!
   | CCustom Name (Maybe Int)
  deriving (Eq, Show, Ord)
@@ -30,6 +31,7 @@ sizeOf CBool = Just 4 -- we represent bools as 32-bit unsigned integers
 sizeOf CWord8 = Just 1
 sizeOf CWord32 = Just 4
 sizeOf CWord64 = Just 4
+sizeOf CVoid = error "Size of void"
 sizeOf (CCustom _ size) = size
 sizeOf (CPtr _ _) = Nothing
 
@@ -61,15 +63,13 @@ data CExp =
   | Word32E Word32
   | Word64E Word64
   | VarE VarName
-  | FunCall Name [CExp]
+  | FunCall CType Name [CExp]
   | SizeOf CType
   | UnaryOpE UnaryOp CExp
   | BinOpE BinOp CExp CExp
   | IfE CExp CExp CExp
   | IndexE VarName CExp
   | CastE CType CExp
-  | GlobalID | LocalID | GroupID
-  | LocalSize | NumGroups | WarpSize
  deriving (Eq, Show, Ord)
 
 data Statement a =
@@ -79,23 +79,21 @@ data Statement a =
   | Assign VarName CExp a
   | AssignSub VarName CExp CExp a
   | Decl VarName CExp a
-  | SyncLocalMem a
-  | SyncGlobalMem a
+  | Exec CExp a
   | Comment String a
   | Allocate VarName CExp a
  deriving (Eq, Show)
 
 labelOf :: Statement t -> t
-labelOf (For _ _ _ lbl) = lbl
-labelOf (While _ _ _ lbl) = lbl
-labelOf (If _ _ _ lbl) = lbl
-labelOf (Assign _ _ lbl) = lbl
+labelOf (For _ _ _ lbl)       = lbl
+labelOf (While _ _ _ lbl)     = lbl
+labelOf (If _ _ _ lbl)        = lbl
+labelOf (Assign _ _ lbl)      = lbl
 labelOf (AssignSub _ _ _ lbl) = lbl
-labelOf (Decl _ _ lbl) = lbl
-labelOf (SyncLocalMem lbl) = lbl
-labelOf (SyncGlobalMem lbl) = lbl
-labelOf (Comment _ lbl) = lbl
-labelOf (Allocate _ _ lbl) = lbl
+labelOf (Decl _ _ lbl)        = lbl
+labelOf (Exec _ lbl)          = lbl
+labelOf (Comment _ lbl)       = lbl
+labelOf (Allocate _ _ lbl)    = lbl
 
 data FunAttribute =
     IsKernel
@@ -137,8 +135,7 @@ removeLabels stmts = map rm stmts
     rm (Assign v e _)          = Assign v e        ()
     rm (AssignSub v e0 e1 _)   = AssignSub v e0 e1 ()
     rm (Decl v e _)            = Decl v e          ()
-    rm (SyncLocalMem _)        = SyncLocalMem      ()
-    rm (SyncGlobalMem _)       = SyncGlobalMem     ()
+    rm (Exec e _)              = Exec e            ()
     rm (Comment msg _)         = Comment msg       ()
     rm (Allocate v e _)        = Allocate v e      ()
 

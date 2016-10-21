@@ -25,7 +25,7 @@ liveInExp e =
     UnaryOpE _ e0       -> liveInExp e0
     BinOpE _ e0 e1      -> liveInExp e0 `Set.union` liveInExp e1
     IfE e0 e1 e2        -> liveInExp e0 `Set.union` liveInExp e1 `Set.union` liveInExp e2
-    FunCall _ es          -> Set.unions (map liveInExp es)
+    FunCall _ _ es      -> Set.unions (map liveInExp es)
     CastE _ e0          -> liveInExp e0
     SizeOf _            -> Set.empty
     -- Scalars and constants
@@ -38,13 +38,7 @@ liveInExp e =
     StringE _           -> Set.empty
 
     Const _ _           -> Set.empty
-    
-    GlobalID            -> Set.empty
-    LocalID             -> Set.empty
-    GroupID             -> Set.empty
-    LocalSize           -> Set.empty
-    NumGroups           -> Set.empty
-    WarpSize            -> Set.empty
+
 
 type LiveMap = Map Label (Set VarName)
 

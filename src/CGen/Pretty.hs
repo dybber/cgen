@@ -1,5 +1,5 @@
 module CGen.Pretty
-  (pretty, RenderMode(..))
+  (pretty)
 where
 
 import Text.PrettyPrint
@@ -7,10 +7,8 @@ import Data.List (sort)
 
 import CGen.Syntax
 
-data RenderMode = C | OpenCL | CUDA
-
-pretty :: RenderMode -> [TopLevel] -> String
-pretty rmode program = render (ppProgram rmode program)
+pretty :: [TopLevel] -> String
+pretty program = render (ppProgram program)
 
 -- Extra pretty printing utility functions
 integral :: Integral a => a -> Doc
@@ -70,153 +68,117 @@ ppBinOp Xor  d0 d1 = d0 <+> text "^" <+> d1
 ppBinOp Sll  d0 d1 = d0 <+> text "<<" <+> d1
 ppBinOp Srl  d0 d1 = d0 <+> text ">>" <+> d1
 
-ppAttr :: RenderMode -> Attribute -> Doc
-ppAttr C      Local    = error "__local attribute not allowed in C-code"
-ppAttr C      Global   = error"__global attribute not allowed in C-code"
-ppAttr OpenCL Local    = text "__local"
-ppAttr OpenCL Global   = text "__global"
-ppAttr CUDA   Local    = text "__shared__"
-ppAttr CUDA   Global   = text "__device__"
-ppAttr _      Volatile = text "volatile"
+ppAttr :: Attribute -> Doc
+ppAttr Local    = text "__local"
+ppAttr Global   = text "__global"
+ppAttr Volatile = text "volatile"
 
-ppType :: RenderMode -> CType -> Doc
-ppType CUDA CInt32        = text "int32_t"
-ppType CUDA CDouble       = text "double"
-ppType CUDA CBool         = text "bool" -- maybe this should just be uint32?
-ppType CUDA CWord8        = text "uint8_t"
-ppType CUDA CWord32       = text "uint32_t"
-ppType CUDA CWord64       = text "uint64_t"
-ppType _ CInt32        = text "int"
-ppType _ CDouble       = text "double"
-ppType _ CBool         = text "bool"
-ppType _ CWord8        = text "unsigned char"
-ppType _ CWord32       = text "unsigned int"
-ppType _ CWord64       = text "unsigned long"
-ppType _ (CCustom name _) = text name
-ppType rmode (CPtr [] t)   = ppType rmode t <> char '*'
-ppType rmode (CPtr attr t) =
-  hsep (map (ppAttr rmode) (sort attr)) <+> ppType rmode t <> char '*'
+ppType :: CType -> Doc
+ppType CInt32        = text "int"
+ppType CDouble       = text "double"
+ppType CBool         = text "bool"
+ppType CWord8        = text "unsigned char"
+ppType CWord32       = text "unsigned int"
+ppType CWord64       = text "unsigned long"
+ppType CVoid         = text "void"
+ppType (CCustom name _) = text name
+ppType (CPtr [] t)   = ppType t <> char '*'
+ppType (CPtr attr t) =
+  hsep (map ppAttr (sort attr)) <+> ppType t <> char '*'
 
 ppVar :: VarName -> Doc
 ppVar (v,_) = text v
 
-ppExp :: RenderMode -> CExp -> Doc
-ppExp _ (IntE c) = int c
-ppExp _ (DoubleE c) = double c
-ppExp _ (BoolE True) = text "true"
-ppExp _ (BoolE False) = text "false"
-ppExp _ (Word8E c) = integral c
-ppExp _ (Word32E c) = integral c
-ppExp _ (Word64E c) = integral c
-ppExp _ (StringE str) = doubleQuotes (text str)
-ppExp _ (Const str _) = text str
-ppExp _ (VarE n) = ppVar n
-ppExp rmode (UnaryOpE op e) = ppUnaryOp op (ppExp rmode e)
-ppExp rmode (BinOpE op e0 e1) = parens $ ppBinOp op (ppExp rmode e0) (ppExp rmode e1)
-ppExp rmode (IfE e0 e1 e2) = parens (ppExp rmode e0 <+> char '?' <+>
-                               ppExp rmode e1 <+> char ':' <+>
-                               ppExp rmode e2)
-ppExp rmode (IndexE n e) = ppVar n <+> brackets (ppExp rmode e)
-ppExp rmode (CastE t e) = parens (parens (ppType rmode t) <+> ppExp rmode e)
-ppExp C GlobalID = error "get_global_id(0) not allowed in C-code"
-ppExp C LocalID = error "get_local_id(0) not allowed in C-code"
-ppExp C GroupID = error "get_group_id(0) not allowed in C-code"
-ppExp C LocalSize = error "get_local_size(0) not allowed in C-code"
-ppExp C NumGroups = error "get_num_groups(0) not allowed in C-code"
-ppExp OpenCL GlobalID = text "get_global_id(0)"
-ppExp OpenCL LocalID = text "get_local_id(0)"
-ppExp OpenCL GroupID = text "get_group_id(0)"
-ppExp OpenCL LocalSize = text "get_local_size(0)"
-ppExp OpenCL NumGroups = text "get_num_groups(0)"
-ppExp CUDA GlobalID = parens (text "threadIdx.x + (blockDim.x * blockIdx.x)")
-ppExp CUDA LocalID = text "threadIdx.x"
-ppExp CUDA GroupID = text "blockIdx.x"
-ppExp CUDA LocalSize = text "blockDim.x"
-ppExp _ WarpSize = error "WarpSize should have been inlined previously." -- TODO fetch this from device info-query
-ppExp CUDA NumGroups = text "gridDim.x"
-ppExp rmode (SizeOf ty) = text "sizeof" <> parens (ppType rmode ty)
-ppExp rmode (FunCall fname e) = text fname <> parens (hsep (punctuate (char ',') (map (ppExp rmode) e)))
+ppExp :: CExp -> Doc
+ppExp (IntE c) = int c
+ppExp (DoubleE c) = double c
+ppExp (BoolE True) = text "true"
+ppExp (BoolE False) = text "false"
+ppExp (Word8E c) = integral c
+ppExp (Word32E c) = integral c
+ppExp (Word64E c) = integral c
+ppExp (StringE str) = doubleQuotes (text str)
+ppExp (Const str _) = text str
+ppExp (VarE n) = ppVar n
+ppExp (UnaryOpE op e) = ppUnaryOp op (ppExp e)
+ppExp (BinOpE op e0 e1) = parens $ ppBinOp op (ppExp e0) (ppExp e1)
+ppExp (IfE e0 e1 e2) = parens (ppExp e0 <+> char '?' <+>
+                               ppExp e1 <+> char ':' <+>
+                               ppExp e2)
+ppExp (IndexE n e) = ppVar n <+> brackets (ppExp e)
+ppExp (CastE t e) = parens (parens (ppType t) <+> ppExp e)
+ppExp (SizeOf ty) = text "sizeof" <> parens (ppType ty)
+ppExp (FunCall _ fname e) = text fname <> parens (hsep (punctuate (char ',') (map (ppExp) e)))
 
-ppStmt :: RenderMode -> Statement a -> Doc
-ppStmt rmode (For n e body _) =
+ppStmt :: Statement a -> Doc
+ppStmt (For n e body _) =
   let var = ppVar n
   in (text "for (int " <> var <> text " = 0; "
-        <> var <> text " < " <> ppExp rmode e <> text "; "
+        <> var <> text " < " <> ppExp e <> text "; "
         <> var <> text "++) {")
      $+$
-       indent (ppStmts rmode body)
+       indent (ppStmts body)
      $+$
      text "}"
-ppStmt rmode (While _ e body _) =
-     (text "while (" <> ppExp rmode e <> text ") {")
+ppStmt (While _ e body _) =
+     (text "while (" <> ppExp e <> text ") {")
      $+$
-       indent (ppStmts rmode body)
+       indent (ppStmts body)
      $+$
      text "}"
-ppStmt rmode (If e ss_true [] _) =
-  text "if " <> parens (ppExp rmode e) <> text " {"
+ppStmt (If e ss_true [] _) =
+  text "if " <> parens (ppExp e) <> text " {"
     $+$
-    indent (ppStmts rmode ss_true)
+    indent (ppStmts ss_true)
     $+$
   text "}"
-ppStmt rmode (If e ss_true ss_false _) =
-  text "if " <> parens (ppExp rmode e) <> text " {"
+ppStmt (If e ss_true ss_false _) =
+  text "if " <> parens (ppExp e) <> text " {"
     $+$
-    indent (ppStmts rmode ss_true)
+    indent (ppStmts ss_true)
     $+$
   text "} else {" <> 
-    indent (ppStmts rmode ss_false)
+    indent (ppStmts ss_false)
     $+$
   text "}"
-ppStmt rmode (Assign n e _) =
-  ppVar n <> text " = " <> ppExp rmode e <> char ';'
-ppStmt rmode (AssignSub n e_idx e _) =
-  ppVar n <> brackets (ppExp rmode e_idx) <> text " = " <> ppExp rmode e <> char ';'
-ppStmt rmode (Decl n e _) =
-  ppDecl rmode n <> text " = " <> ppExp rmode e <> char ';'
-ppStmt C (SyncLocalMem _) = error "barrier(CLK_LOCAL_MEM_FENCE) not allowed in C-code"
-ppStmt C (SyncGlobalMem _) = error "barrier(CLK_GLOBAL_MEM_FENCE) not allowed in C-code"
-ppStmt OpenCL (SyncLocalMem _) = text "barrier(CLK_LOCAL_MEM_FENCE);"
-ppStmt OpenCL (SyncGlobalMem _) = text "barrier(CLK_GLOBAL_MEM_FENCE);"
-ppStmt CUDA (SyncLocalMem _) = text "__syncthreads();"
-ppStmt CUDA (SyncGlobalMem _) = error "SyncGlobalMem in kernels not supported in CUDA"
-ppStmt _ (Allocate (name,_) _ _) = text ("// allocate " ++ name)
-ppStmt _ (Comment msg _) = text ("// " ++ msg)
+ppStmt (Assign n e _) =
+  ppVar n <> text " = " <> ppExp e <> char ';'
+ppStmt (AssignSub n e_idx e _) =
+  ppVar n <> brackets (ppExp e_idx) <> text " = " <> ppExp e <> char ';'
+ppStmt (Decl n e _) =
+  ppDecl n <> text " = " <> ppExp e <> char ';'
+ppStmt (Exec e _) = ppExp e <> char ';'
+ppStmt (Allocate (name,_) _ _) = text ("// allocate " ++ name)
+ppStmt (Comment msg _) = text ("// " ++ msg)
 
-ppStmts :: RenderMode -> [Statement a] -> Doc
-ppStmts _ [] = empty
-ppStmts rmode [s] = ppStmt rmode s
-ppStmts rmode (s : ss) = ppStmt rmode s $+$ ppStmts rmode ss
+ppStmts :: [Statement a] -> Doc
+ppStmts [] = empty
+ppStmts [s] = ppStmt s
+ppStmts (s : ss) = ppStmt s $+$ ppStmts ss
 
-ppDecl :: RenderMode -> VarName -> Doc
-ppDecl rmode (n@(_,t)) = ppType rmode t <+> ppVar n
+ppDecl :: VarName -> Doc
+ppDecl (n@(_,t)) = ppType t <+> ppVar n
 
-ppTopLevel :: RenderMode -> TopLevel -> Doc
-ppTopLevel _ (Include path) = text "#include" <> angles (text path)
-ppTopLevel rmode (Function name params attr ty0 body) =
+ppTopLevel :: TopLevel -> Doc
+ppTopLevel (Include path) = text "#include" <> angles (text path)
+ppTopLevel (Function name params attr ty0 body) =
   let
     ppParamList :: [VarName] -> Doc
-    ppParamList = hsep . punctuate (char ',') . map (ppDecl rmode)
+    ppParamList = hsep . punctuate (char ',') . map ppDecl
 
     retType = case ty0 of
                        Nothing -> text "void"
                        Just ty -> text (show ty)
 
-    returnSig =
-      case rmode of
-        C -> retType
-        OpenCL -> if isKernel attr
-                  then text "__kernel void"
-                  else retType
-        CUDA   -> if isKernel attr
-                  then text "extern \"C\" __global__ void "
-                  else retType
+    returnSig = if isKernel attr
+                then text "__kernel void"
+                else retType
   in 
     returnSig <+> text name <> parens (ppParamList params) <+> char '{'
     $+$
-      indent (ppStmts rmode body)
+      indent (ppStmts body)
     $+$
     char '}'
 
-ppProgram :: RenderMode -> [TopLevel] -> Doc
-ppProgram rmode fs = vcat (map (ppTopLevel rmode) fs)
+ppProgram :: [TopLevel] -> Doc
+ppProgram fs = vcat (map ppTopLevel fs)
