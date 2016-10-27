@@ -18,8 +18,7 @@ Library
                    CGen.Monad
                    CGen.Syntax
                    CGen.Cons
-                   CGen.OpenCLKernel
-                   CGen.SimpleAllocator
+                   CGen.OpenCL.KernelCode
                    CGen.Pretty
                    CGen.Analysis
                    CGen.Analysis.Graph

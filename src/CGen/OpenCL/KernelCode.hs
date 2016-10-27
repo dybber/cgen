@@ -1,4 +1,4 @@
-module CGen.OpenCLKernel
+module CGen.OpenCL.KernelCode
  ( attrLocal, attrGlobal,
    syncGlobal, syncLocal,
    globalID, localID, localSize, workgroupID, numWorkgroups)

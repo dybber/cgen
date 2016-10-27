@@ -19,6 +19,7 @@ module CGen.Cons (
  -- Binary operators
  addi, subi, muli, divi, modi,
  addd, subd, muld, divd,
+ addPtr,
  lti, ltei, gti, gtei, eqi, neqi,
  ltd, lted, gtd, gted, eqd, neqd,
  land, lor, xor, sll, srl,
@@ -27,7 +28,6 @@ module CGen.Cons (
  
  -- Statements
  for, whileLoop, whileUnroll, iff,
- allocate,
  assign, (<==), assignArray,
  comment,
 
@@ -108,12 +108,6 @@ iff cond (f1, f2) = do
   f1' <- run f1
   f2' <- run f2
   addStmt (If cond f1' f2' ())
-
-allocate :: CType -> [Attribute] -> CExp -> CGen u VarName
-allocate ty attr n = do
-  arr <- newVar (pointer_t attr ty) "arr"
-  addStmt (Allocate arr n ())
-  return arr
 
 -- assign variable, and add to current list of operators
 assign :: VarName -> CExp -> CGen u ()
@@ -196,7 +190,7 @@ index arrName e =  IndexE arrName e
 
 -- TODO: This could be better
 cast :: CType -> CExp -> CExp
-cast _ e = e
+cast ty e = CastE ty e
 
 -----------------
 --  Operators  --
@@ -240,6 +234,10 @@ e0 `addd` e1 = (BinOpE AddD e0 e1)
 e0 `subd` e1 = (BinOpE SubD e0 e1)
 e0 `muld` e1 = (BinOpE MulD e0 e1)
 e0 `divd` e1 = (BinOpE DivD e0 e1)
+
+-- Arithmetic (Pointers)
+addPtr :: CExp -> CExp -> CExp
+e0 `addPtr` e1 = BinOpE AddPtr e0 e1
 
 -- Comparisons (Int)
 lti, ltei, gti, gtei, eqi, neqi :: CExp -> CExp -> CExp

@@ -131,7 +131,6 @@ constantFold stmts = concat (map process stmts)
    process (While unroll e body i) = [While unroll (foldExp e) (constantFold body) i]
    process (Decl v e i)           = [Decl v (foldExp e) i]
    process (Exec e i)             = [Exec (foldExp e) i]
-   process (Allocate v e i)       = [Allocate v (foldExp e) i]
    process (Assign v e i)        = [Assign v (foldExp e) i]
    process (AssignSub v e0 e1 i) = [AssignSub v (foldExp e0) (foldExp e1) i]
    process (Comment msg i)       = [Comment msg i]

@@ -148,7 +148,6 @@ ppStmt (AssignSub n e_idx e _) =
 ppStmt (Decl n e _) =
   ppDecl n <> text " = " <> ppExp e <> char ';'
 ppStmt (Exec e _) = ppExp e <> char ';'
-ppStmt (Allocate (name,_) _ _) = text ("// allocate " ++ name)
 ppStmt (Comment msg _) = text ("// " ++ msg)
 
 ppStmts :: [Statement a] -> Doc

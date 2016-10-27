@@ -1,50 +1,35 @@
 module CGen
 (
   module CGen.Cons,
-  module CGen.OpenCLKernel,
+  module CGen.OpenCL.KernelCode,
+  module CGen.Monad,
+  sizeOf, isScalar,
   CType(..), generateKernel, generateFunction, include,
   pretty
 )
 where
 
 import CGen.Cons
-import CGen.OpenCLKernel
+import CGen.OpenCL.KernelCode
 import CGen.Syntax
-
+import CGen.Monad
 import CGen.Pretty (pretty)
 import CGen.Optimise (optimise)
-import CGen.SimpleAllocator (memoryMap, Bytes)
-
-generateKernel :: u -> Int -> String -> CGen u () -> (TopLevel, u)
-generateKernel us optIterations name m =
-  let (stmts, ps, _, us') = runCGen us m
-      (stmts', used) = memoryMap stmts
-      ps' = (addSharedMem used) ++ ps
-      stmts'' = optimise optIterations stmts'
-  in (Function { funName = name
-               , funParams = ps'
-               , funAttr = [IsKernel]
-               , funBody = removeLabels stmts''
-               , funReturnType = Nothing
-               },
-      us')
 
 include :: FilePath -> TopLevel
 include path = Include path
 
-generateFunction :: u -> Int -> String -> CGen u () -> (TopLevel, u)
-generateFunction us optIterations name m =
-  let (stmts, ps, _, _) = runCGen us m
+generateFunction :: u -> [FunAttribute] -> Int -> String -> CGen u () -> (TopLevel, u)
+generateFunction us funAttrs optIterations name m =
+  let (stmts, ps, _, us') = runCGen us m
       stmts' = optimise optIterations stmts
   in (Function { funName = name
                , funParams = ps
-               , funAttr = []
+               , funAttr = funAttrs
                , funBody = removeLabels stmts'
                , funReturnType = Nothing
                },
-      us)
+      us')
 
-addSharedMem :: Maybe Bytes -> [VarName]
-addSharedMem Nothing = []
-addSharedMem _ = [("sbase", CPtr [attrLocal] CWord8)]
-
+generateKernel :: u -> Int -> String -> CGen u () -> (TopLevel, u)
+generateKernel u = generateFunction u [IsKernel]

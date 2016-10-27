@@ -43,7 +43,6 @@ addLabels stmts = evalState (addMany stmts) (Label 1)
     addLabel (Decl v e _)            = Decl v e          <$> next
     addLabel (Exec e _)              = Exec e            <$> next
     addLabel (Comment msg _)         = Comment msg       <$> next
-    addLabel (Allocate v e _)        = Allocate v e      <$> next
 
 ---------------------------
 -- Create dataflow graph --

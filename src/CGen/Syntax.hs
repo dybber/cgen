@@ -81,7 +81,6 @@ data Statement a =
   | Decl VarName CExp a
   | Exec CExp a
   | Comment String a
-  | Allocate VarName CExp a
  deriving (Eq, Show)
 
 labelOf :: Statement t -> t
@@ -93,7 +92,6 @@ labelOf (AssignSub _ _ _ lbl) = lbl
 labelOf (Decl _ _ lbl)        = lbl
 labelOf (Exec _ lbl)          = lbl
 labelOf (Comment _ lbl)       = lbl
-labelOf (Allocate _ _ lbl)    = lbl
 
 data FunAttribute =
     IsKernel
@@ -137,7 +135,6 @@ removeLabels stmts = map rm stmts
     rm (Decl v e _)            = Decl v e          ()
     rm (Exec e _)              = Exec e            ()
     rm (Comment msg _)         = Comment msg       ()
-    rm (Allocate v e _)        = Allocate v e      ()
 
 labels :: [Statement a] -> [a]
 labels stmts = concatMap lbl stmts

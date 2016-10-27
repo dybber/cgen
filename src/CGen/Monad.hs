@@ -61,6 +61,9 @@ addParam name ty = do
 getState :: CGen u u
 getState = lift (gets userState)
 
+getsState :: (u -> a) -> CGen u a
+getsState selector = lift (gets (selector . userState))
+
 putState :: u -> CGen u ()
 putState us = lift (modify (\s -> s { userState = us }))
 

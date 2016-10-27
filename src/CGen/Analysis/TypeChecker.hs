@@ -82,10 +82,6 @@ checkStmt env (Decl var@(x,ty) e0 _) =
 checkStmt env (Exec e _) = do _ <- checkExp env e
                               return env
 checkStmt env (Comment _ _) = return env
-checkStmt env (Allocate var e0 _) =
-  do ty0 <- checkExp env e0
-     when (ty0 /= CInt32) $ throw "Size of allocation should be specified as an integer"
-     addVar env var
 checkStmt env (For var@(_,ty) e0 ss _) =
   do ty0 <- checkExp env e0
      when (ty0 /= ty || ty /= CInt32) $ throw "Loop variable should be integer"
