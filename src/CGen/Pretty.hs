@@ -35,6 +35,7 @@ ppUnaryOp op d0 =
           AbsI -> text "abs"
           AbsD -> text "abs"
           AddressOf -> char '&'
+          Dereference -> char '*'
    in name <> parens d0
 
 ppBinOp :: BinOp -> Doc -> Doc -> Doc
@@ -76,7 +77,7 @@ ppAttr Volatile = text "volatile"
 ppType :: CType -> Doc
 ppType CInt32        = text "int"
 ppType CDouble       = text "double"
-ppType CBool         = text "bool"
+ppType CBool         = text "unsigned char"
 ppType CWord8        = text "unsigned char"
 ppType CWord32       = text "unsigned int"
 ppType CWord64       = text "unsigned long"
@@ -92,11 +93,12 @@ ppVar (v,_) = text v
 ppExp :: CExp -> Doc
 ppExp (IntE c) = int c
 ppExp (DoubleE c) = double c
-ppExp (BoolE True) = text "true"
-ppExp (BoolE False) = text "false"
+ppExp (BoolE True) = text "1"
+ppExp (BoolE False) = text "0"
 ppExp (Word8E c) = integral c
 ppExp (Word32E c) = integral c
 ppExp (Word64E c) = integral c
+ppExp Null = text "NULL"
 ppExp (StringE str) = doubleQuotes (text str)
 ppExp (Const str _) = text str
 ppExp (VarE n) = ppVar n
@@ -159,19 +161,16 @@ ppDecl :: VarName -> Doc
 ppDecl (n@(_,t)) = ppType t <+> ppVar n
 
 ppTopLevel :: TopLevel -> Doc
-ppTopLevel (Include path) = text "#include" <> angles (text path)
+ppTopLevel (IncludeSys path) = text "#include" <+> angles (text path)
+ppTopLevel (IncludeLocal path) = text "#include" <+> doubleQuotes (text path)
 ppTopLevel (Function name params attr ty0 body) =
   let
     ppParamList :: [VarName] -> Doc
     ppParamList = hsep . punctuate (char ',') . map ppDecl
 
-    retType = case ty0 of
-                       Nothing -> text "void"
-                       Just ty -> text (show ty)
-
     returnSig = if isKernel attr
                 then text "__kernel void"
-                else retType
+                else ppType ty0
   in 
     returnSig <+> text name <> parens (ppParamList params) <+> char '{'
     $+$

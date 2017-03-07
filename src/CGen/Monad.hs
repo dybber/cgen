@@ -1,5 +1,10 @@
 -- | Program construction monad
-module CGen.Monad where
+module CGen.Monad
+  (CGen, runCGen, runProg, run, evalCGen, evalProg,
+   newName, newVar, addStmt, addStmts, addParam,
+   getState, getsState, putState, modifyState,
+   embed)
+where
 
 import Control.Monad.Trans.State
 import Control.Monad.Trans.Writer
@@ -32,6 +37,18 @@ runProg m init' =
   let (stmts, finalState) = runState (execWriterT m) init'
   in (stmts, finalState)
 
+evalCGen :: u -> CGen u a -> ([Statement ()], u, a)
+evalCGen us m =
+  let (stmts, finalState, v) = evalProg m (initialState us)
+  in (stmts, userState finalState, v)
+
+--evalProg :: CGen u a -> MState u -> ([Statement ()], MState u, a)
+evalProg :: CGen u a -> MState u -> ([Statement ()], MState u, a)
+evalProg m init' = 
+ let ((v, stmts), finalState) = runState (runWriterT m) init'
+ in (stmts, finalState, v)
+
+
 -- -- This is weird!
 -- evalCGen :: CGen () a -> a
 -- evalCGen m = fst (evalState (runWriterT m) initialState)
@@ -46,11 +63,19 @@ run m = do
 addStmt :: Statement () -> CGen u ()
 addStmt stmt = tell [stmt]
 
-newVar :: CType -> String -> CGen u VarName
-newVar ty name = do
+addStmts :: Statements -> CGen u ()
+addStmts stmts = tell stmts
+
+newName :: String -> CGen u String
+newName name = do
   c <- lift (gets varCount)
   lift (modify (\s -> s { varCount = 1 + varCount s }))
-  return (name ++ "_" ++ show c, ty) -- the underscore is important!
+  return (name ++ "_" ++ show c) -- the underscore is important!
+
+newVar :: CType -> String -> CGen u VarName
+newVar ty name = do
+  x <- newName name
+  return (x, ty)
 
 addParam :: String -> CType -> CGen u VarName
 addParam name ty = do
@@ -70,10 +95,9 @@ putState us = lift (modify (\s -> s { userState = us }))
 modifyState :: (u -> u) -> CGen u ()
 modifyState f = lift (modify (\s -> s { userState = f (userState s) }))
 
--- Run one code-generator inside another
-embed :: CGen u (CGen v ()) -> v -> CGen u ([Statement ()], [VarName], v)
-embed gen initState = do
-  x <- gen
+-- Run one code-generator inside another, passing on variable counter
+embed :: CGen v () -> v -> CGen u ([Statement ()], [VarName], v)
+embed x initState = do
   count <- lift (gets varCount)
   let s' = MState { params = []
                   , varCount = count

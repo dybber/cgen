@@ -1,4 +1,4 @@
-module CGen.Analysis.Liveness (liveness) where
+module CGen.Analysis.Liveness (liveness, liveInExp) where
 
 
 import qualified Data.Map as Map
@@ -38,6 +38,7 @@ liveInExp e =
     StringE _           -> Set.empty
 
     Const _ _           -> Set.empty
+    Null                -> Set.empty
 
 
 type LiveMap = Map Label (Set VarName)
@@ -64,6 +65,7 @@ gensLiveness stmts = liveMany stmts
     go (Assign _ e lbl)        = expLiveMap lbl [e]
     go (AssignSub _ e0 e1 lbl) = expLiveMap lbl [e0,e1]
     go (Decl _ e lbl)          = expLiveMap lbl [e]
+    go (Exec e lbl)            = expLiveMap lbl [e]
     go _                       = Map.empty
 
 killsLiveness :: [Statement Label] -> LiveMap
@@ -101,10 +103,3 @@ liveness stmts graph =
       Set.fold (\p s -> Set.union s (lkup p inMap)) Set.empty (successors n graph)
 
   in backwardAnalysis updateIn updateOut graph
-
--- ss0 = addLabels  [Decl ("a",CInt32) (IntE 0) (),
---                   Decl ("b",CInt32) (IntE 512) (),
---                   Decl ("c",CInt32) (VarE ("a",CInt32)) (),
---                   Decl ("a",CInt32) (IntE 17) ()]
--- g = makeFlowGraph ss0
--- (in_,out_) = liveness ss0 g

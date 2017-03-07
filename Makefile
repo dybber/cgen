@@ -1,4 +1,4 @@
-reinstall:
+install:
 	cabal install --force-reinstall
 
 build:

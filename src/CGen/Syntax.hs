@@ -24,23 +24,12 @@ data CType =
   | CCustom Name (Maybe Int)
  deriving (Eq, Show, Ord)
 
-sizeOf :: CType -> Maybe Int
-sizeOf CInt32 = Just 4
-sizeOf CDouble = Just 8
-sizeOf CBool = Just 4 -- we represent bools as 32-bit unsigned integers
-sizeOf CWord8 = Just 1
-sizeOf CWord32 = Just 4
-sizeOf CWord64 = Just 4
-sizeOf CVoid = error "Size of void"
-sizeOf (CCustom _ size) = size
-sizeOf (CPtr _ _) = Nothing
-
 -- Builtin operators
 data UnaryOp =
     Not | NegateInt | NegateDouble
     | NegateBitwise
     | Ceil | Floor | Exp | Ln | AbsI | AbsD
-    | AddressOf
+    | AddressOf | Dereference
   deriving (Eq, Show, Ord)
 
 data BinOp =
@@ -57,6 +46,7 @@ data CExp =
     IntE Int
   | DoubleE Double
   | BoolE Bool
+  | Null
   | StringE String
   | Const String CType
   | Word8E Word8
@@ -71,6 +61,8 @@ data CExp =
   | IndexE VarName CExp
   | CastE CType CExp
  deriving (Eq, Show, Ord)
+
+type Statements = [Statement ()]
 
 data Statement a =
     For VarName CExp [Statement a] a
@@ -97,15 +89,15 @@ data FunAttribute =
     IsKernel
  deriving (Eq, Show, Ord)
 
-
 data TopLevel =
     Function { funName :: String
              , funParams :: [VarName]
              , funAttr :: [FunAttribute]
-             , funReturnType :: Maybe CType
+             , funReturnType :: CType
              , funBody :: [Statement ()]
              }
-  | Include FilePath
+  | IncludeSys FilePath
+  | IncludeLocal FilePath
   deriving (Eq, Show)
 
 isKernel :: [FunAttribute] -> Bool
@@ -144,3 +136,6 @@ labels stmts = concatMap lbl stmts
     lbl (While _ _ ss i) = i : labels ss
     lbl (If _ ss0 ss1 i)  = i : labels ss0 ++ labels ss1
     lbl stmt              = [labelOf stmt]
+
+-- freeVars :: [Statement a] -> [VarName]
+-- freeVars 

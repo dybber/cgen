@@ -17,6 +17,17 @@ powers = map (2^) [1..(64 :: Integer)]
 isPowerOfTwo :: Integral a => a -> Bool
 isPowerOfTwo i = elem (toInteger i) powers
 
+sizeOf :: CType -> Maybe Int
+sizeOf CInt32 = Just 4
+sizeOf CDouble = Just 8
+sizeOf CBool = Just 4 -- we represent bools as 32-bit unsigned integers
+sizeOf CWord8 = Just 1
+sizeOf CWord32 = Just 4
+sizeOf CWord64 = Just 4
+sizeOf CVoid = error "Size of void"
+sizeOf (CCustom _ size) = size
+sizeOf (CPtr _ _) = Nothing
+
 foldExp :: CExp -> CExp
 foldExp e =
   case e of
@@ -28,7 +39,8 @@ foldExp e =
     Word64E _  -> e
     StringE _  -> e
     Const _ _  -> e
-    VarE _  -> e
+    VarE _     -> e
+    Null       -> e
     CastE ty0 (CastE _ e0)  -> foldExp (CastE ty0 (foldExp e0))
     CastE ty e0  -> CastE ty (foldExp e0)
     IndexE var e0 -> IndexE var (foldExp e0)

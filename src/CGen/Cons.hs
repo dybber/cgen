@@ -1,20 +1,23 @@
 -- | Untyped constructors for building CGen-kernels
 module CGen.Cons (
+ -- Top level
+ includeSys, includeLocal,
   
  -- Types
- int32_t, double_t, bool_t, uint8_t, uint32_t, uint64_t, pointer_t,
+ int32_t, double_t, bool_t, uint8_t, uint32_t, uint64_t, pointer_t, void_t, string_t,
  attrVolatile,
 
  -- Expressions
- constant, if_, (?), let_, letVar, index, (!), cast,
+ nullPtr, constant, if_, (?), let_, letVar, index, (!), cast,
  -- Getter's (launch parameters and current thread info)
- var, call, string, definedConst,
+ var, call, exec, eval, string, definedConst,
 
  -- Unary operators
  not, i2d, negatei, negated,
  absi, absd, signi,
  negateBitwise,
  ceil, floor, exp, ln,
+ addressOf, deref, sizeOf,
  
  -- Binary operators
  addi, subi, muli, divi, modi,
@@ -33,12 +36,9 @@ module CGen.Cons (
 
  -- Monad
  VarName,
- CExp,
  CGen,
- TopLevel(..),
- initialState,
- runCGen,
- addParam
+ CExp,
+ TopLevel(..)
 )
 where
 
@@ -47,6 +47,15 @@ import Data.Word (Word32, Word8)
 
 import CGen.Syntax as AST
 import CGen.Monad
+
+---------------
+-- Top level --
+---------------
+includeSys :: FilePath -> TopLevel
+includeSys path = IncludeSys path
+
+includeLocal :: FilePath -> TopLevel
+includeLocal path = IncludeLocal path
 
 ----------------------
 -- Variable binding --
@@ -75,8 +84,14 @@ comment msg = addStmt (Comment msg ())
 --------------------
 -- Function calls --
 --------------------
-call :: CType -> Name -> [CExp] -> CGen u ()
-call ty funname args = addStmt (Exec (FunCall ty funname args) ())
+call :: CType -> Name -> [CExp] -> CExp
+call = FunCall
+
+exec :: CType -> Name -> [CExp] -> CGen u ()
+exec ty funname args = addStmt (Exec (call ty funname args) ())
+
+eval :: Name -> CType -> Name -> [CExp] -> CGen u VarName
+eval x ty funname args = letVar x ty (call ty funname args)
 
 ----------------
 -- Statements --
@@ -141,8 +156,14 @@ uint32_t = CWord32
 uint64_t :: CType
 uint64_t = CWord64
 
+string_t :: CType
+string_t = CPtr [] CWord8
+
 pointer_t :: [Attribute] -> CType -> CType
 pointer_t attr t = CPtr attr t
+
+void_t :: CType
+void_t = CVoid
 
 attrVolatile :: Attribute
 attrVolatile = Volatile
@@ -150,6 +171,9 @@ attrVolatile = Volatile
 -----------------
 -- Expressions --
 -----------------
+nullPtr :: CExp
+nullPtr = Null
+
 class Scalar t where
   constant :: t -> CExp
 
@@ -239,6 +263,15 @@ e0 `divd` e1 = (BinOpE DivD e0 e1)
 addPtr :: CExp -> CExp -> CExp
 e0 `addPtr` e1 = BinOpE AddPtr e0 e1
 
+addressOf :: CExp -> CExp
+addressOf e = UnaryOpE AddressOf e
+
+deref :: CExp -> CExp
+deref e = UnaryOpE Dereference e
+
+sizeOf :: CType -> CExp
+sizeOf e = SizeOf e
+
 -- Comparisons (Int)
 lti, ltei, gti, gtei, eqi, neqi :: CExp -> CExp -> CExp
 lti  e0 e1 = (BinOpE LtI e0 e1)
@@ -272,7 +305,7 @@ e0 ||* e1 = (BinOpE Or e0 e1)
 
 mini, maxi :: CExp -> CExp -> CExp
 mini a b = if_ (a `lti` b) a b
-maxi a b = if_ (a `lti` b) b a
+maxi a b = if_ (a `gti` b) a b
 
 signi :: CExp -> CExp
 signi a =
