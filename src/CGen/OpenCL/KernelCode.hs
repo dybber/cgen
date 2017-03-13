@@ -23,16 +23,16 @@ attrGlobal :: Attribute
 attrGlobal = Global
 
 globalID :: CExp
-globalID = call CWord64 "get_global_id" [IntE 0]
+globalID = call CWord64 "get_global_id" [Word32E 0]
 
 localID :: CExp
-localID = call CWord64 "get_local_id" [IntE 0]
+localID = call CWord64 "get_local_id" [Word32E 0]
 
 workgroupID :: CExp
-workgroupID = call CWord64 "get_group_id" [IntE 0]
+workgroupID = call CWord64 "get_group_id" [Word32E 0]
 
 localSize :: CExp
-localSize = call CWord64 "get_local_size" [IntE 0]
+localSize = call CWord64 "get_local_size" [Word32E 0]
 
 numWorkgroups :: CExp
-numWorkgroups = call CWord64 "get_num_groups" [IntE 0]
+numWorkgroups = call CWord64 "get_num_groups" [Word32E 0]

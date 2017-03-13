@@ -76,6 +76,7 @@ ppAttr Volatile = text "volatile"
 
 ppType :: CType -> Doc
 ppType CInt32        = text "int"
+ppType CInt64        = text "long int"
 ppType CDouble       = text "double"
 ppType CBool         = text "unsigned char"
 ppType CWord8        = text "unsigned char"
@@ -91,7 +92,8 @@ ppVar :: VarName -> Doc
 ppVar (v,_) = text v
 
 ppExp :: CExp -> Doc
-ppExp (IntE c) = int c
+ppExp (Int32E c) = integral c
+ppExp (Int64E c) = integral c
 ppExp (DoubleE c) = double c
 ppExp (BoolE True) = text "1"
 ppExp (BoolE False) = text "0"

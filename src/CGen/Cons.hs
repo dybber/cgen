@@ -4,7 +4,7 @@ module CGen.Cons (
  includeSys, includeLocal,
   
  -- Types
- int32_t, double_t, bool_t, uint8_t, uint32_t, uint64_t, pointer_t, void_t, string_t,
+ int32_t, int64_t, double_t, bool_t, uint8_t, uint32_t, uint64_t, pointer_t, void_t, string_t,
  attrVolatile,
 
  -- Expressions
@@ -141,6 +141,9 @@ assignArray arrName e idx = addStmt (AssignSub arrName idx e ())
 int32_t :: CType
 int32_t = CInt32
 
+int64_t :: CType
+int64_t = CInt64
+
 double_t :: CType
 double_t = CDouble
 
@@ -178,7 +181,7 @@ class Scalar t where
   constant :: t -> CExp
 
 instance Scalar Int where
-  constant = IntE
+  constant = Int32E . fromIntegral
 
 instance Scalar Double where
   constant = DoubleE

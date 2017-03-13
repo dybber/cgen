@@ -95,7 +95,8 @@ checkStmt env (While _ e0 ss _) =
      return env
 
 checkExp :: Env -> CExp -> Err CType
-checkExp _ (IntE _)    = return CInt32
+checkExp _ (Int32E _)  = return CInt32
+checkExp _ (Int64E _)  = return CInt32
 checkExp _ (DoubleE _) = return CDouble
 checkExp _ (BoolE _)   = return CBool
 checkExp _ (Word8E _)  = return CWord8

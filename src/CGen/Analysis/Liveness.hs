@@ -29,7 +29,8 @@ liveInExp e =
     CastE _ e0          -> liveInExp e0
     SizeOf _            -> Set.empty
     -- Scalars and constants
-    IntE _              -> Set.empty
+    Int32E _            -> Set.empty
+    Int64E _            -> Set.empty
     DoubleE _           -> Set.empty
     BoolE _             -> Set.empty
     Word8E _            -> Set.empty

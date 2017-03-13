@@ -19,6 +19,7 @@ isPowerOfTwo i = elem (toInteger i) powers
 
 sizeOf :: CType -> Maybe Int
 sizeOf CInt32 = Just 4
+sizeOf CInt64 = Just 8
 sizeOf CDouble = Just 8
 sizeOf CBool = Just 4 -- we represent bools as 32-bit unsigned integers
 sizeOf CWord8 = Just 1
@@ -31,7 +32,8 @@ sizeOf (CPtr _ _) = Nothing
 foldExp :: CExp -> CExp
 foldExp e =
   case e of
-    IntE _     -> e
+    Int32E _     -> e
+    Int64E _     -> e
     DoubleE _  -> e
     BoolE _    -> e
     Word8E _   -> e
@@ -50,7 +52,7 @@ foldExp e =
     FunCall ty fname es -> FunCall ty fname (map foldExp es)
     SizeOf ty ->
       case sizeOf ty of
-        Just i -> IntE i
+        Just i -> Int32E (fromIntegral i)
         Nothing -> SizeOf ty
 
 foldIf :: CExp -> CExp -> CExp -> CExp
@@ -71,57 +73,57 @@ foldUnOp op e = UnaryOpE op e
 -- TODO
 
 foldBinOp :: BinOp -> CExp -> CExp -> CExp
-foldBinOp AddI (IntE v0) (IntE v1) = IntE (v0 + v1)
-foldBinOp AddI (IntE 0) e1 = e1
-foldBinOp AddI e0 (IntE 0) = e0
-foldBinOp AddI (BinOpE SubI e0 (IntE v1)) (IntE v2) =
-  foldBinOp AddI e0 (IntE (v2-v1)) -- (a - b) + c ==> a + (c-b)
-foldBinOp AddI (BinOpE SubI (IntE v0) e1) (IntE v2) =
-  foldBinOp SubI (IntE (v0+v2)) e1 -- (a - b) + c ==> (a + c) -b
+foldBinOp AddI (Int32E v0) (Int32E v1) = Int32E (v0 + v1)
+foldBinOp AddI (Int32E 0) e1 = e1
+foldBinOp AddI e0 (Int32E 0) = e0
+foldBinOp AddI (BinOpE SubI e0 (Int32E v1)) (Int32E v2) =
+  foldBinOp AddI e0 (Int32E (v2-v1)) -- (a - b) + c ==> a + (c-b)
+foldBinOp AddI (BinOpE SubI (Int32E v0) e1) (Int32E v2) =
+  foldBinOp SubI (Int32E (v0+v2)) e1 -- (a - b) + c ==> (a + c) -b
 
-foldBinOp SubI (IntE v0) (IntE v1) = IntE (v0 - v1)
-foldBinOp SubI (IntE 0) e1 = UnaryOpE NegateInt e1
-foldBinOp SubI e0 (IntE 0) = e0
+foldBinOp SubI (Int32E v0) (Int32E v1) = Int32E (v0 - v1)
+foldBinOp SubI (Int32E 0) e1 = UnaryOpE NegateInt e1
+foldBinOp SubI e0 (Int32E 0) = e0
 
-foldBinOp MulI (IntE v0) (IntE v1) = IntE (v0 * v1)
-foldBinOp MulI (IntE 1) e1 = e1
-foldBinOp MulI e0 (IntE 1) = e0
-foldBinOp MulI (IntE 0) _ = IntE 0
-foldBinOp MulI _ (IntE 0) = IntE 0
+foldBinOp MulI (Int32E v0) (Int32E v1) = Int32E (v0 * v1)
+foldBinOp MulI (Int32E 1) e1 = e1
+foldBinOp MulI e0 (Int32E 1) = e0
+foldBinOp MulI (Int32E 0) _ = Int32E 0
+foldBinOp MulI _ (Int32E 0) = Int32E 0
 
-foldBinOp MulI (BinOpE DivI e0 (IntE v1)) (IntE v2)
-  | v1 `mod` v2 == 0 = foldBinOp DivI e0 (IntE (v1 `div` v2))
+foldBinOp MulI (BinOpE DivI e0 (Int32E v1)) (Int32E v2)
+  | v1 `mod` v2 == 0 = foldBinOp DivI e0 (Int32E (v1 `div` v2))
                        -- (a / b) * c ==> (a / (c/b))
-foldBinOp DivI (IntE v0) (IntE v1) = IntE (v0 `div` v1)
-foldBinOp DivI (IntE 0) _ = IntE 0
-foldBinOp DivI e0 (IntE 1) = e0
-foldBinOp DivI e0 e1@(IntE v) =
+foldBinOp DivI (Int32E v0) (Int32E v1) = Int32E (v0 `div` v1)
+foldBinOp DivI (Int32E 0) _ = Int32E 0
+foldBinOp DivI e0 (Int32E 1) = e0
+foldBinOp DivI e0 e1@(Int32E v) =
   if isPowerOfTwo v
-  then foldBinOp Srl e0 (IntE (ilog2 v))
+  then foldBinOp Srl e0 (Int32E (fromIntegral (ilog2 (fromIntegral v))))
   else BinOpE DivI e0 e1
-foldBinOp DivI e0 e1 | e0 == e1 = IntE 1
+foldBinOp DivI e0 e1 | e0 == e1 = Int32E 1
 
-foldBinOp ModI (IntE v0) (IntE v1) = IntE (v0 `mod` v1)
-foldBinOp ModI _ (IntE 1) = IntE 0
-foldBinOp ModI e0 e1@(IntE v) =
+foldBinOp ModI (Int32E v0) (Int32E v1) = Int32E (v0 `mod` v1)
+foldBinOp ModI _ (Int32E 1) = Int32E 0
+foldBinOp ModI e0 e1@(Int32E v) =
   if isPowerOfTwo v
-  then foldBinOp Land e0 (IntE (v-1))
+  then foldBinOp Land e0 (Int32E (v-1))
   else BinOpE ModI e0 e1
 
-foldBinOp ModI e0 e1 | e0 == e1 = IntE 0
+foldBinOp ModI e0 e1 | e0 == e1 = Int32E 0
 
-foldBinOp EqI (IntE v0) (IntE v1) | v0 == v1  = BoolE True
+foldBinOp EqI (Int32E v0) (Int32E v1) | v0 == v1  = BoolE True
                                   | otherwise = BoolE False
-foldBinOp NeqI (IntE v0) (IntE v1) | v0 /= v1  = BoolE True
+foldBinOp NeqI (Int32E v0) (Int32E v1) | v0 /= v1  = BoolE True
                                    | otherwise = BoolE False
-foldBinOp LtI (IntE v0) (IntE v1) | v0 < v1  = BoolE True
+foldBinOp LtI (Int32E v0) (Int32E v1) | v0 < v1  = BoolE True
                                   | otherwise = BoolE False
-foldBinOp GtI (IntE v0) (IntE v1) = BoolE (v0 > v1)
+foldBinOp GtI (Int32E v0) (Int32E v1) = BoolE (v0 > v1)
 
-foldBinOp Sll (IntE v0) (IntE v1) = IntE (shiftL v0 v1)
-foldBinOp Srl (IntE v0) (IntE v1) = IntE (shiftR v0 v1)
-foldBinOp Land (IntE v0) (IntE v1) = IntE (v0 .&. v1)
-foldBinOp Lor (IntE v0) (IntE v1) = IntE (v0 .|. v1)
+foldBinOp Sll (Int32E v0) (Int32E v1) = Int32E (shiftL v0 (fromIntegral v1))
+foldBinOp Srl (Int32E v0) (Int32E v1) = Int32E (shiftR v0 (fromIntegral v1))
+foldBinOp Land (Int32E v0) (Int32E v1) = Int32E (v0 .&. v1)
+foldBinOp Lor (Int32E v0) (Int32E v1) = Int32E (v0 .|. v1)
 
 foldBinOp op e0 e1 = BinOpE op e0 e1
 
@@ -131,8 +133,8 @@ constantFold stmts = concat (map process stmts)
    process :: Statement a -> [Statement a]
    process (For v e body i)          =
      case foldExp e of
-       IntE 0 -> []
-       IntE 1 -> [Decl v (IntE 0) i] ++ constantFold body
+       Int32E 0 -> []
+       Int32E 1 -> [Decl v (Int32E 0) i] ++ constantFold body
        e' -> [For v e' (constantFold body) i]
    process (If e strue sfalse i) =
         case foldExp e of

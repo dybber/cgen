@@ -1,6 +1,7 @@
 module CGen.Syntax where
 
 import Data.Word (Word8, Word32, Word64)
+import Data.Int (Int32, Int64)
 
 type Name = String
 type VarName = (Name, CType)
@@ -14,6 +15,7 @@ data Attribute =
           
 data CType =
     CInt32
+  | CInt64
   | CDouble
   | CBool
   | CWord8
@@ -43,7 +45,8 @@ data BinOp =
   deriving (Eq, Show, Ord)
 
 data CExp = 
-    IntE Int
+    Int32E Int32
+  | Int64E Int64
   | DoubleE Double
   | BoolE Bool
   | Null
@@ -104,11 +107,13 @@ isKernel :: [FunAttribute] -> Bool
 isKernel attr = IsKernel `elem` attr
 
 isScalar :: CExp -> Bool
-isScalar (IntE _)    = True
+isScalar (Int32E _)  = True
+isScalar (Int64E _)  = True
 isScalar (DoubleE _) = True
 isScalar (BoolE _)   = True 
 isScalar (Word8E _)  = True
 isScalar (Word32E _) = True
+isScalar (Word64E _) = True
 isScalar _           = False
 
 isVar :: CExp -> Bool
