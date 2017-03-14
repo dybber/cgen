@@ -115,6 +115,11 @@ invokeKernel (ClContext ctx) kernel@(ClKernel k) arguments globalSize wgSize =
   do mapM_ (setKernelArg kernel) (zip [0..] arguments)
      exec void_t "mclInvokeKernel" [var ctx, var k, globalSize, wgSize]
 
+profileKernel :: ClContext -> ClKernel -> [KernelArg] -> CExp -> CExp -> CGen u VarName
+profileKernel (ClContext ctx) kernel@(ClKernel k) arguments globalSize wgSize =
+  do mapM_ (setKernelArg kernel) (zip [0..] arguments)
+     eval "tdiff" uint64_t "mclProfileKernel" [var ctx, var k, globalSize, wgSize]
+
 releaseDeviceData :: ClDeviceBuffer -> CGen u ()
 releaseDeviceData (ClDeviceBuffer buf) =
   exec void_t "mclReleaseDeviceData" [addressOf (var buf)]
@@ -143,5 +148,3 @@ unmmap (ClContext ctx) (ClDeviceBuffer buf) hostPtr =
 finish :: ClContext -> CGen u ()
 finish (ClContext ctx) =
   exec void_t "mclFinish" [var ctx]
-
-
