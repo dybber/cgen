@@ -26,7 +26,7 @@ deadCodeElimination stmts liveOutMap =
     elimStmt (Assign (_, CPtr _ _) _ _) = False
     elimStmt (Decl (_, CPtr _ _) _ _) = False
     elimStmt (Assign v _ lbl) = canElim lbl v
-    elimStmt (Decl v _ lbl) = canElim lbl v
+--    elimStmt (Decl v _ lbl) = canElim lbl v
     elimStmt _ = False
 
   in filterStmt elimStmt stmts
