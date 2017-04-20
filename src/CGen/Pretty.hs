@@ -36,6 +36,7 @@ ppUnaryOp op d0 =
           AbsD -> text "abs"
           AddressOf -> char '&'
           Dereference -> char '*'
+          B2I -> empty -- bools are already pretty printed as 0/1
    in name <> parens d0
 
 ppBinOp :: BinOp -> Doc -> Doc -> Doc

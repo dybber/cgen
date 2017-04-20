@@ -142,7 +142,10 @@ constantFold stmts = concat (map process stmts)
           BoolE False -> constantFold sfalse
           e' -> [If e' (constantFold strue)
                        (constantFold sfalse) i]
-   process (While unroll e body i) = [While unroll (foldExp e) (constantFold body) i]
+   process (While unroll e body i) =
+     case foldExp e of
+       BoolE False -> []
+       e' -> [While unroll (foldExp e') (constantFold body) i]
    process (Decl v e i)           = [Decl v (foldExp e) i]
    process (Exec e i)             = [Exec (foldExp e) i]
    process (Assign v e i)        = [Assign v (foldExp e) i]

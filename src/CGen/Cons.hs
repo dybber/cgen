@@ -13,7 +13,7 @@ module CGen.Cons (
  var, call, exec, eval, string, definedConst,
 
  -- Unary operators
- not, i2d, negatei, negated,
+ not, i2d, b2i, negatei, negated,
  absi, absd, signi,
  negateBitwise,
  ceil, floor, exp, ln,
@@ -228,6 +228,8 @@ not = UnaryOpE Not
 
 i2d :: CExp -> CExp
 i2d e = CastE CDouble e
+b2i :: CExp -> CExp
+b2i = UnaryOpE B2I
 negatei :: CExp -> CExp
 negatei = UnaryOpE NegateInt
 negated :: CExp -> CExp

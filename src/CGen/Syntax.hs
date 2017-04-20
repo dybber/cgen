@@ -31,7 +31,7 @@ data UnaryOp =
     Not | NegateInt | NegateDouble
     | NegateBitwise
     | Ceil | Floor | Exp | Ln | AbsI | AbsD
-    | AddressOf | Dereference
+    | AddressOf | Dereference | B2I
   deriving (Eq, Show, Ord)
 
 data BinOp =

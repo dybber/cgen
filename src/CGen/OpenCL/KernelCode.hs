@@ -1,7 +1,8 @@
 module CGen.OpenCL.KernelCode
  ( attrLocal, attrGlobal,
    syncGlobal, syncLocal,
-   globalID, localID, localSize, workgroupID, numWorkgroups)
+   globalID, localID, localSize, workgroupID, numWorkgroups,
+   countLeadingZeroes)
 where
 
 import CGen.Syntax as AST
@@ -36,3 +37,6 @@ localSize = call CWord64 "get_local_size" [Word32E 0]
 
 numWorkgroups :: CExp
 numWorkgroups = call CWord64 "get_num_groups" [Word32E 0]
+
+countLeadingZeroes :: CExp -> CExp
+countLeadingZeroes e0 = call CInt32 "clz" [e0]
